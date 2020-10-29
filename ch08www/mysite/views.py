@@ -2,25 +2,55 @@ from django.shortcuts import render
 from . import models
 
 # Create your views here.
-def index(request):
-    posts = models.post.objects.filter(enabled=True).order_by('-pub_time')[:30]
-    modes = models.Mood.objects.all()
-
-
-    years = range(1960, 2021)
+def index(request, pid=None, del_pass=None):
+    posts = models.Post.objects.filter(enabled=True).order_by('-pub_time')[:30]
+    moods = models.Mood.objects.all()
     try:
-        urid = request.GET['user_id']
-        urpass = request.GET['user_pass']
-        uryear = request.GET['byear']
-        urfcolor = request.GET.getlist('fcolor')
-        print(urfcolor)
+        user_id = request.GET['user_id']
+        user_pass = request.GET['user_pass']
+        user_post = request.GET['user_post']
+        user_mood = request.GET['mood']
     except:
-        urid = None
+        user_id = None
+        message = '如果要張貼訊息，則每一個欄位都要填'
 
-    if urid != None and urpass == '12345':
-        verified = True
-    else:
-        verified = False
+    if del_pass and pid:
+        try:
+            post = models.Post.objects.get(id=pid)
+        except:
+            post = None
+        if post:
+            if post.del_pass == del_pass:
+                post.delete()
+                message = "資料刪除成功"
+            else:
+                message = "密碼錯誤"
+    elif user_id != None:
+        mood = models.Mood.objects.get(status=user_mood)
+        post = models.Post.objects.create(mood=mood, nickname=user_id, del_pass=user_pass, message=user_post)
+        post.save()
+        message='成功儲存!請記得你的密碼[{}]，訊息須經審查後才會顯示'.format(user_pass)
+
+
+    # years = range(1960, 2021)
+    # try:
+    #     urid = request.GET['user_id']
+    #     urpass = request.GET['user_pass']
+    #     uryear = request.GET['byear']
+    #     urfcolor = request.GET.getlist('fcolor')
+    #     print(urfcolor)
+    # except:
+    #     urid = None
+    #
+    # if urid != None and urpass == '12345':
+    #     verified = True
+    # else:
+    #     verified = False
 
 
     return render(request,'index.html',locals())
+
+def listing(request):
+    posts = models.Post.objects.filter(enabled=True).order_by('-pub_time')[:150]
+    modes = models.Mood.objects.all()
+    return render(request, 'listing.html', locals())
